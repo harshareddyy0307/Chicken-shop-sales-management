@@ -1,0 +1,39 @@
+{
+  "name": "chicken-shop-backend",
+  "version": "1.0.0",
+  "description": "Chicken Shop Management System Backend API",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "test": "tsx tests/scenarios.test.ts",
+    "seed": "tsx src/db/seed.ts",
+    "clear-data": "tsx src/db/clear.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.15.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.2",
+    "@types/pdfkit": "^0.13.8",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.2"
+  }
+}

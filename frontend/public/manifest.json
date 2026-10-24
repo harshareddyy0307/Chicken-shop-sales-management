@@ -1,0 +1,22 @@
+{
+  "short_name": "Reddy Meat",
+  "name": "Reddy Chicken and Mutton Center",
+  "description": "Daily Operations, Stock & Sales Management System",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#059669",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}
