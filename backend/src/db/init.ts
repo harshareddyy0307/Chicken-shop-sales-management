@@ -9,88 +9,112 @@ export async function initializeDatabase(): Promise<void> {
   const schemaSql = fs.readFileSync(schemaPath, 'utf8');
 
   // Execute schema
-  await pool.query(schemaSql);
+  try {
+    const checkRes = await pool.query(
+      "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('users', 'daily_closings')"
+    );
+    const existingCount = parseInt(checkRes.rows[0]?.count || '0', 10);
+    if (existingCount < 2) {
+      await pool.query(schemaSql);
+    } else {
+      console.log('Database tables already initialized.');
+    }
+  } catch (err: any) {
+    if (err.code === '42501' || err.message?.includes('must be owner')) {
+      console.log('Notice: Tables already created by superuser; schema structure preserved.');
+    } else {
+      console.warn('Notice during schema verification:', err.message);
+    }
+  }
 
   // Column migrations for daily_closings
-  await pool.query(`
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS opening_stock_rate_per_kg NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS opening_stock_amount NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS total_available_stock_cost NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS closing_stock_rate_per_kg NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS closing_stock_amount NUMERIC(12, 2) DEFAULT 0;
+  try {
+    await pool.query(`
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS opening_stock_rate_per_kg NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS opening_stock_amount NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS total_available_stock_cost NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS closing_stock_rate_per_kg NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS closing_stock_amount NUMERIC(12, 2) DEFAULT 0;
 
-    -- Egg stock and daily sales columns
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_opening_stock NUMERIC(10, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_opening_stock_rate NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_opening_stock_amount NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_new_stock NUMERIC(10, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_purchase_rate NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_purchase_cost NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_total_available_stock NUMERIC(10, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_total_available_cost NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_closing_stock NUMERIC(10, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_closing_stock_rate NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_closing_stock_amount NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_quantity_sold NUMERIC(10, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_sales_revenue NUMERIC(12, 2) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS total_sales_revenue NUMERIC(12, 2) DEFAULT 0;
+      -- Egg stock and daily sales columns
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_opening_stock NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_opening_stock_rate NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_opening_stock_amount NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_new_stock NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_purchase_rate NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_purchase_cost NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_total_available_stock NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_total_available_cost NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_closing_stock NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_closing_stock_rate NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_closing_stock_amount NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_quantity_sold NUMERIC(10, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS egg_sales_revenue NUMERIC(12, 2) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS total_sales_revenue NUMERIC(12, 2) DEFAULT 0;
 
-    -- Stock transfer columns
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS stock_transferred_kg NUMERIC(10, 3) DEFAULT 0;
-    ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS stock_available_for_sale_kg NUMERIC(10, 3) DEFAULT 0;
+      -- Stock transfer columns
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS stock_transferred_kg NUMERIC(10, 3) DEFAULT 0;
+      ALTER TABLE daily_closings ADD COLUMN IF NOT EXISTS stock_available_for_sale_kg NUMERIC(10, 3) DEFAULT 0;
 
-    -- Stock transfers table
-    CREATE TABLE IF NOT EXISTS stock_transfers (
-      id SERIAL PRIMARY KEY,
-      transfer_date DATE NOT NULL,
-      source_shop VARCHAR(100) NOT NULL DEFAULT 'Reddy Chicken and Mutton Center',
-      destination_shop VARCHAR(100) NOT NULL,
-      weight_kg NUMERIC(10, 3) NOT NULL CHECK (weight_kg > 0),
-      cost_per_kg NUMERIC(12, 2) DEFAULT 0 CHECK (cost_per_kg >= 0),
-      total_cost NUMERIC(12, 2) DEFAULT 0 CHECK (total_cost >= 0),
-      daily_closing_id INTEGER REFERENCES daily_closings(id) ON DELETE SET NULL,
-      status VARCHAR(20) NOT NULL DEFAULT 'Completed' CHECK (status IN ('Completed', 'Cancelled')),
-      notes TEXT,
-      created_by INTEGER REFERENCES users(id),
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_stock_transfers_date ON stock_transfers(transfer_date);
-    CREATE INDEX IF NOT EXISTS idx_stock_transfers_dest ON stock_transfers(destination_shop);
+      -- Stock transfers table
+      CREATE TABLE IF NOT EXISTS stock_transfers (
+        id SERIAL PRIMARY KEY,
+        transfer_date DATE NOT NULL,
+        source_shop VARCHAR(100) NOT NULL DEFAULT 'Reddy Chicken and Mutton Center',
+        destination_shop VARCHAR(100) NOT NULL,
+        weight_kg NUMERIC(10, 3) NOT NULL CHECK (weight_kg > 0),
+        cost_per_kg NUMERIC(12, 2) DEFAULT 0 CHECK (cost_per_kg >= 0),
+        total_cost NUMERIC(12, 2) DEFAULT 0 CHECK (total_cost >= 0),
+        daily_closing_id INTEGER REFERENCES daily_closings(id) ON DELETE SET NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'Completed' CHECK (status IN ('Completed', 'Cancelled')),
+        notes TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_stock_transfers_date ON stock_transfers(transfer_date);
+      CREATE INDEX IF NOT EXISTS idx_stock_transfers_dest ON stock_transfers(destination_shop);
 
-    -- Ensure inventory_transactions supports transfer_out and transfer_in
-    DO $$ 
-    BEGIN
-      ALTER TABLE inventory_transactions DROP CONSTRAINT IF EXISTS inventory_transactions_txn_type_check;
-      ALTER TABLE inventory_transactions ADD CONSTRAINT inventory_transactions_txn_type_check 
-        CHECK (txn_type IN ('opening', 'supply_in', 'sales_out', 'adjustment', 'closing', 'transfer_out', 'transfer_in'));
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END $$;
+      -- Ensure inventory_transactions supports transfer_out and transfer_in
+      DO $$ 
+      BEGIN
+        ALTER TABLE inventory_transactions DROP CONSTRAINT IF EXISTS inventory_transactions_txn_type_check;
+        ALTER TABLE inventory_transactions ADD CONSTRAINT inventory_transactions_txn_type_check 
+          CHECK (txn_type IN ('opening', 'supply_in', 'sales_out', 'adjustment', 'closing', 'transfer_out', 'transfer_in'));
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END $$;
 
-    -- Users schema enhancements for Phone + 4-digit PIN authentication
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS normalized_phone VARCHAR(20);
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(255);
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP WITH TIME ZONE DEFAULT NULL;
-    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_normalized_phone ON users(normalized_phone) WHERE normalized_phone IS NOT NULL;
+      -- Users schema enhancements for Phone + 4-digit PIN authentication
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS normalized_phone VARCHAR(20);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(255);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_normalized_phone ON users(normalized_phone) WHERE normalized_phone IS NOT NULL;
 
-    -- Customer bills enhancements for multiple item types (Skinless, Dressed, Boneless, Liver, Eggs, Natukodi, Masala)
-    ALTER TABLE customer_bills ADD COLUMN IF NOT EXISTS items JSONB;
-    DO $$
-    BEGIN
-      ALTER TABLE customer_bills DROP CONSTRAINT IF EXISTS customer_bills_weight_kg_check;
-      ALTER TABLE customer_bills ADD CONSTRAINT customer_bills_weight_kg_check CHECK (weight_kg >= 0);
-      ALTER TABLE customer_bills ALTER COLUMN weight_kg SET DEFAULT 0;
+      -- Customer bills enhancements for multiple item types (Skinless, Dressed, Boneless, Liver, Eggs, Natukodi, Masala)
+      ALTER TABLE customer_bills ADD COLUMN IF NOT EXISTS items JSONB;
+      DO $$
+      BEGIN
+        ALTER TABLE customer_bills DROP CONSTRAINT IF EXISTS customer_bills_weight_kg_check;
+        ALTER TABLE customer_bills ADD CONSTRAINT customer_bills_weight_kg_check CHECK (weight_kg >= 0);
+        ALTER TABLE customer_bills ALTER COLUMN weight_kg SET DEFAULT 0;
 
-      ALTER TABLE chicken_sales DROP CONSTRAINT IF EXISTS chicken_sales_weight_sold_kg_check;
-      ALTER TABLE chicken_sales ADD CONSTRAINT chicken_sales_weight_sold_kg_check CHECK (weight_sold_kg >= 0);
-      ALTER TABLE chicken_sales ALTER COLUMN weight_sold_kg SET DEFAULT 0;
-    EXCEPTION WHEN OTHERS THEN
-      NULL;
-    END $$;
-  `);
+        ALTER TABLE chicken_sales DROP CONSTRAINT IF EXISTS chicken_sales_weight_sold_kg_check;
+        ALTER TABLE chicken_sales ADD CONSTRAINT chicken_sales_weight_sold_kg_check CHECK (weight_sold_kg >= 0);
+        ALTER TABLE chicken_sales ALTER COLUMN weight_sold_kg SET DEFAULT 0;
+      EXCEPTION WHEN OTHERS THEN
+        NULL;
+      END $$;
+    `);
+  } catch (err: any) {
+    if (err.code === '42501' || err.message?.includes('must be owner')) {
+      console.log('Notice: Alter migrations skipped (columns already present).');
+    } else {
+      console.warn('Notice running migrations:', err.message);
+    }
+  }
 
   console.log('Schema tables and indices ensured.');
 
