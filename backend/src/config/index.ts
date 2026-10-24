@@ -14,6 +14,8 @@ export const config = {
   currencySymbol: process.env.CURRENCY_SYMBOL || '₹',
   dateFormat: process.env.DATE_FORMAT || 'DD-MM-YYYY',
   timezone: process.env.TIMEZONE || 'Asia/Kolkata',
-  nodeEnv: process.env.NODE_ENV || 'development',
   uploadDir: path.resolve(__dirname, '../../uploads'),
+  supabaseProjectId: process.env.SUPABASE_PROJECT_ID || 'ncmkxtfjdwoqrcqfrjcr',
+  supabaseUrl: process.env.SUPABASE_URL || 'https://ncmkxtfjdwoqrcqfrjcr.supabase.co',
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
 };

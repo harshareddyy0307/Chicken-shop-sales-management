@@ -4,11 +4,17 @@ import { config } from '../config';
 // Ensure DATE fields (OID 1082) are parsed as exact YYYY-MM-DD strings without timezone conversion
 pg.types.setTypeParser(1082, (str: string) => str);
 
+const isRemoteDb =
+  config.databaseUrl.includes('supabase.co') ||
+  config.databaseUrl.includes('pooler.supabase.com') ||
+  process.env.DB_SSL === 'true';
+
 export const pool = new Pool({
   connectionString: config.databaseUrl,
+  ssl: isRemoteDb ? { rejectUnauthorized: false } : undefined,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on('error', (err) => {

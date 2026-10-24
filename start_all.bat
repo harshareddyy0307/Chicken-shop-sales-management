@@ -30,10 +30,11 @@ echo ==========================================================
 echo Application started successfully!
 echo Backend API : http://localhost:5000/api/health
 echo Frontend UI : http://localhost:5173
+echo Database    : Supabase Cloud (Project: sales management)
 echo.
-echo Default Logins:
-echo   Owner:   owner   / admin123
-echo   Manager: manager / manager123
-echo   Staff:   staff   / staff123
+echo Default Logins (Phone / 4-digit PIN):
+echo   Owner:   7989856610 / 1234
+echo   Manager: 9876543211 / 2345
+echo   Staff:   9876543212 / 3456
 echo ==========================================================
 pause
