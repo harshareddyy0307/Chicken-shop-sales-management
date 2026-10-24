@@ -15,6 +15,7 @@ export const config = {
   dateFormat: process.env.DATE_FORMAT || 'DD-MM-YYYY',
   timezone: process.env.TIMEZONE || 'Asia/Kolkata',
   uploadDir: path.resolve(__dirname, '../../uploads'),
+  nodeEnv: process.env.NODE_ENV || 'development',
   supabaseProjectId: process.env.SUPABASE_PROJECT_ID || 'ncmkxtfjdwoqrcqfrjcr',
   supabaseUrl: process.env.SUPABASE_URL || 'https://ncmkxtfjdwoqrcqfrjcr.supabase.co',
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',

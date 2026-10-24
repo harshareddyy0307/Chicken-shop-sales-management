@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        sync: false
+        value: postgresql://shop_admin.ncmkxtfjdwoqrcqfrjcr:ChickenSales2026!SecureDb@aws-0-ap-south-1.pooler.supabase.com:5432/postgres
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN

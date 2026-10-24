@@ -29,10 +29,11 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 // Static uploads serving
 app.use('/uploads', express.static(config.uploadDir));
 
-// Health check endpoint
-app.get('/api/health', (_req: Request, res: Response) => {
+// Health check and root endpoints
+app.get(['/', '/health', '/api/health'], (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
+    message: 'Chicken Shop Backend API is running',
     shop: config.shopName,
     currency: config.currencySymbol,
     timestamp: new Date().toISOString(),

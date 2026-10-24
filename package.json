@@ -1,0 +1,12 @@
+{
+  "name": "sales-manager",
+  "version": "1.0.0",
+  "description": "Sales Manager - Chicken Shop Management System",
+  "scripts": {
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npx tsc && cd .. && powershell -Command \"Copy-Item -Recurse -Force 'backend/dist/*' 'functions/backend'\"",
+    "deploy:frontend": "npm run build:frontend && npx --package=firebase-tools firebase deploy --only hosting",
+    "deploy:backend": "npm run build:backend && npx --package=firebase-tools firebase deploy --only functions",
+    "deploy:all": "npm run build:frontend && npm run build:backend && npx --package=firebase-tools firebase deploy"
+  }
+}

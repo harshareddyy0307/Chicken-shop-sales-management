@@ -33,4 +33,7 @@ backup_*.sql
 .vscode/
 .idea/
 .DS_Store
-Thumbs.db
+# Firebase
+.firebase/
+functions/backend/
+functions/node_modules/

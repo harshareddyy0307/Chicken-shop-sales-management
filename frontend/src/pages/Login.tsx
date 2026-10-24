@@ -147,8 +147,16 @@ export const Login: React.FC = () => {
         setErrorMessage(res.data.error || 'Invalid phone number or PIN. Please try again.');
       }
     } catch (err: any) {
-      const errText = err.response?.data?.error || 'Invalid phone number or PIN. Please try again.';
-      setErrorMessage(errText);
+      console.error('Login request failed:', err);
+      if (err.response?.data?.error) {
+        setErrorMessage(err.response.data.error);
+      } else if (err.response?.status === 404) {
+        setErrorMessage('Backend API endpoint not found (HTTP 404). Please ensure backend is running and /api is properly routed.');
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setErrorMessage('Cannot connect to backend server (Network Error). Please check if backend is running.');
+      } else {
+        setErrorMessage(`Server error (${err.response?.status || 'Unknown'}). Please try again.`);
+      }
     } finally {
       setIsLoading(false);
     }

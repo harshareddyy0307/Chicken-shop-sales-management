@@ -5,8 +5,20 @@ import { pool, query } from './connection';
 
 export async function initializeDatabase(): Promise<void> {
   console.log('Initializing database schema...');
-  const schemaPath = path.resolve(__dirname, 'schema.sql');
-  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+  const possiblePaths = [
+    path.resolve(__dirname, 'schema.sql'),
+    path.resolve(__dirname, '../../src/db/schema.sql'),
+    path.resolve(__dirname, '../src/db/schema.sql'),
+    path.resolve(process.cwd(), 'src/db/schema.sql'),
+    path.resolve(process.cwd(), 'backend/src/db/schema.sql'),
+  ];
+  let schemaSql = '';
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      schemaSql = fs.readFileSync(p, 'utf8');
+      break;
+    }
+  }
 
   // Execute schema
   try {
